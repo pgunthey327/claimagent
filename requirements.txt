@@ -1,9 +1,0 @@
-crewai
-crewai-tools
-langchain
-python-dotenv
-pypdf
-fpdf
-PyPDF2
-streamlit
-Pillow

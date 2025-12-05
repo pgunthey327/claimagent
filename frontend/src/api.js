@@ -4,5 +4,5 @@ export async function processClaim(text) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   });
-  return res.json();
+  return res.json(); 
 }

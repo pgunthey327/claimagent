@@ -2,231 +2,261 @@ import { useState } from "react";
 import { processClaim } from "./api";
 
 export default function App() {
-  const [text, setText] = useState("");
-  const [result, setResult] = useState(null);
+  const [input, setInput] = useState("");
+  const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const steps = [
-    "FNOL – Extract Claim Data",
-    "Validate Claim Information",
-    "Generate Summary",
-    "Fraud Check",
-  ];
+  const [steps, setSteps] = useState({
+    extract: "inactive",
+    validate: "inactive",
+    fraud: "inactive",
+    summary: "inactive",
+  });
+
+  const stepOrder = ["extract", "validate", "fraud", "summary"];
+
+  const startSimulationSequence = async () => {
+    for (let i = 0; i < stepOrder.length - 1; i++) {
+      const curr = stepOrder[i];
+      const next = stepOrder[i + 1];
+
+      // Set current step active
+      setSteps((p) => ({ ...p, [curr]: "active" }));
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Set current step completed
+      setSteps((p) => ({ ...p, [curr]: "completed", [next]: "active" }));
+    }
+
+    // ❗ For the last step "summary":
+    // Keep it ACTIVE but DO NOT mark completed.
+  };
 
   const handleSubmit = async () => {
-    if (!text.trim()) return;
+    if (!input.trim()) return;
+
+    // Reset UI
+    setResponse(null);
+    setSteps({
+      extract: "inactive",
+      validate: "inactive",
+      fraud: "inactive",
+      summary: "inactive",
+    });
 
     setLoading(true);
-    setResult(null);
 
-    await new Promise((r) => setTimeout(r, 500)); // UI delay
+    // Start UI simulation
+    startSimulationSequence();
 
+    // ---- Actual backend call ----
     try {
-      const data = await processClaim(text);
-      setResult(data.result);
-    } catch {
-      setResult({ error: "Something went wrong. Please try again." });
+      const data = await processClaim(input);
+
+      setResponse(data.result);
+
+      // Now mark final step completed
+      setSteps((p) => ({ ...p, summary: "completed" }));
+    } catch (e) {
+      alert("Backend error");
     }
 
     setLoading(false);
   };
 
-  const getStepStatus = (index) => {
-    if (loading) {
-      if (index === 0) return "active";
-      return "inactive";
-    }
-    if (result) return "completed";
-    return "inactive";
+  const getStepClass = (state) => {
+    if (state === "active") return "bg-blue-100 border-blue-600";
+    if (state === "completed") return "bg-green-100 border-green-600";
+    return "bg-gray-200 border-gray-400"; // inactive
   };
 
   return (
-    <div className="container">
-      <h2 className="title">🚀 AI-Powered Claim Processing Journey</h2>
+    <div style={{ display: "flex", height: "100vh", padding: 20, gap: 20 }}>
 
-      <textarea
-        rows={6}
-        className="input-box"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Describe your claim here..."
-      />
-
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className={`submit-btn ${loading ? "disabled" : ""}`}
+      {/* LEFT SIDE — JOURNEY */}
+      <div
+        style={{
+          width: 250,
+          background: "white",
+          padding: 20,
+          borderRadius: 12,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        }}
       >
-        {loading ? "Processing..." : "Submit Claim"}
-      </button>
+        <h3 style={{ fontWeight: "bold", marginBottom: 20 }}>
+          Claim Journey
+        </h3>
 
-      {/* Journey Timeline */}
-      <div className="journey-card">
-        <h3>Claim Processing Journey</h3>
+        {stepOrder.map((step) => (
+          <div
+            key={step}
+            style={{
+              padding: 12,
+              marginBottom: 12,
+              borderRadius: 8,
+              border: "2px solid",
+              fontWeight: "500",
+              ...((steps[step] === "active" && { color: "#1e40af" }) ||
+                (steps[step] === "completed" && { color: "#166534" })),
+              background:
+                steps[step] === "active"
+                  ? "#dbeafe"
+                  : steps[step] === "completed"
+                  ? "#dcfce7"
+                  : "#e5e7eb",
+            }}
+          >
+            {step === "extract" && "1. Extract Fields"}
+            {step === "validate" && "2. Validate Claim"}
+            {step === "fraud" && "3. Fraud Check"}
+            {step === "summary" && "4. Summarize Claim"}
 
-        <div className="stepper">
-          {steps.map((label, idx) => {
-            const status = getStepStatus(idx);
-
-            return (
-              <div key={idx} className="step-item">
-                <div className={`step-icon ${status}`}>
-                  {status === "completed" ? "✓" : ""}
-                </div>
-
-                <div className="step-label">{label}</div>
-
-                {/* connector line */}
-                {idx < steps.length - 1 && (
-                  <div className={`step-line ${status}`}></div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+            <span style={{ float: "right" }}>
+              {steps[step] === "active" && "⏳"}
+              {steps[step] === "completed" && "✔️"}
+            </span>
+          </div>
+        ))}
       </div>
 
-      {/* Final Result */}
-      {result && (
-        <div className="result-card">
-          <h3>📄 Final Processed Claim</h3>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </div>
-      )}
+      {/* RIGHT SIDE — MAIN CONTENT */}
+      <div
+        style={{
+          flex: 1,
+          background: "white",
+          padding: 30,
+          borderRadius: 12,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          overflow: "auto",
+        }}
+      >
+        <h2 style={{ fontWeight: "bold", fontSize: 24, marginBottom: 20 }}>
+          Multi-Agent Claim Processor
+        </h2>
 
-      {/* CSS */}
-      <style>
-        {`
-        .container {
-          max-width: 750px;
-          margin: 50px auto;
-          padding: 30px;
-          border-radius: 15px;
-          background: #fdfdfd;
-          box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-          font-family: 'Segoe UI', Tahoma, sans-serif;
-        }
+        {/* Input */}
+        <textarea
+          rows={6}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Describe your claim here..."
+          style={{
+            width: "100%",
+            borderRadius: 8,
+            padding: 12,
+            border: "1px solid #ccc",
+            fontSize: 16,
+          }}
+        />
 
-        .title {
-          text-align: center;
-          margin-bottom: 20px;
-          font-size: 26px;
-          color: #333;
-        }
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            marginTop: 15,
+            padding: "14px 20px",
+            background: loading ? "#777" : "#4f46e5",
+            color: "white",
+            borderRadius: 8,
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {loading ? "Processing..." : "Initiate Claim"}
+        </button>
 
-        .input-box {
-          width: 100%;
-          padding: 15px;
-          margin-top: 10px;
-          border-radius: 10px;
-          border: 1px solid #ccc;
-          font-size: 16px;
-          resize: vertical;
-        }
+        {/* Response */}
+        {response && (
+          <div style={{ marginTop: 30 }}>
+            <h3 style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
+              Extracted Details
+            </h3>
 
-        .submit-btn {
-          margin-top: 15px;
-          width: 100%;
-          padding: 15px;
-          background: #4f46e5;
-          color: white;
-          font-size: 17px;
-          font-weight: bold;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: 0.3s;
-        }
+            {/* Mapping the extract fields */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 20,
+                marginBottom: 20,
+              }}
+            >
+              {Object.entries(response.extract_claim_fields).map(
+                ([key, value]) => (
+                  <div key={key}>
+                    <label style={{ fontWeight: "600" }}>
+                      {key.replace(/_/g, " ").toUpperCase()}
+                    </label>
+                    <input
+                      value={value}
+                      readOnly
+                      style={{
+                        width: "100%",
+                        border: "1px solid #ccc",
+                        borderRadius: 8,
+                        padding: 8,
+                        marginTop: 4,
+                      }}
+                    />
+                  </div>
+                )
+              )}
+            </div>
 
-        .submit-btn:hover {
-          background: #4338ca;
-        }
+            {/* Validation */}
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ marginBottom: 8 }}>Validation Result</h4>
+              <input
+                readOnly
+                value={
+                  response.validate_claim.valid
+                    ? "VALID CLAIM ✔️"
+                    : "Missing: " + response.validate_claim.missing.join(", ")
+                }
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                }}
+              />
+            </div>
 
-        .submit-btn.disabled {
-          background: #999;
-          cursor: not-allowed;
-        }
+            {/* Fraud */}
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ marginBottom: 8 }}>Fraud Check</h4>
+              <textarea
+                readOnly
+                value={response.fraud_check}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  height: 90,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                }}
+              />
+            </div>
 
-        /* Journey Card */
-        .journey-card {
-          margin-top: 30px;
-          padding: 20px;
-          background: #fff;
-          border-radius: 12px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-
-        .stepper {
-          position: relative;
-          margin-top: 20px;
-          padding-left: 20px;
-        }
-
-        .step-item {
-          position: relative;
-          padding-bottom: 25px;
-        }
-
-        .step-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: #bbb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: bold;
-          position: absolute;
-          left: -12px;
-        }
-
-        .step-icon.active {
-          border: 3px solid #4f46e5;
-          border-top: 3px solid transparent;
-          animation: spin 1s linear infinite;
-          background: white;
-        }
-
-        .step-icon.completed {
-          background: #22c55e;
-        }
-
-        .step-label {
-          margin-left: 20px;
-          font-size: 16px;
-          color: #333;
-        }
-
-        .step-line {
-          width: 2px;
-          height: 30px;
-          background: #ccc;
-          position: absolute;
-          left: -2px;
-          top: 26px;
-        }
-
-        .step-line.completed {
-          background: #22c55e;
-        }
-
-        /* Result Card */
-        .result-card {
-          margin-top: 30px;
-          padding: 20px;
-          background: #ffffff;
-          border-radius: 12px;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-          white-space: pre-wrap;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}
-      </style>
+            {/* Summary */}
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ marginBottom: 8 }}>Claim Summary</h4>
+              <textarea
+                readOnly
+                value={response.summarize_claim}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  height: 90,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

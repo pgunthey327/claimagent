@@ -1,4 +1,5 @@
 export default async function validateTool(input) {
+  console.log("Validating extracted claim data ...")
   const claim = JSON.parse(JSON.stringify(input));
 
   const missing = [];
@@ -9,6 +10,8 @@ export default async function validateTool(input) {
   if (!claim.date_of_birth) missing.push("date_of_birth");
   if (!claim.place_of_birth) missing.push("place_of_birth");
   if (!claim.vehicle_plate) missing.push("vehicle_plate");
+
+  console.log("Validation completed ...")
   return {
     valid: missing.length === 0,
     missing

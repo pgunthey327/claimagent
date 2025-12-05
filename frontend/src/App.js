@@ -15,21 +15,19 @@ export default function App() {
 
   const stepOrder = ["extract", "validate", "fraud", "summary"];
 
-  const startSimulationSequence = async () => {
+  const simulateSteps = async () => {
     for (let i = 0; i < stepOrder.length - 1; i++) {
       const curr = stepOrder[i];
       const next = stepOrder[i + 1];
 
-      // Set current step active
+      // Activate current step
       setSteps((p) => ({ ...p, [curr]: "active" }));
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 2500)); // 2.5s delay per step
 
-      // Set current step completed
+      // Mark current step completed, activate next
       setSteps((p) => ({ ...p, [curr]: "completed", [next]: "active" }));
     }
-
-    // ❗ For the last step "summary":
-    // Keep it ACTIVE but DO NOT mark completed.
+    // The last step "summary" will remain active until backend response
   };
 
   const handleSubmit = async () => {
@@ -46,28 +44,21 @@ export default function App() {
 
     setLoading(true);
 
-    // Start UI simulation
-    startSimulationSequence();
+    // Start the simulation of first three steps
+    simulateSteps();
 
-    // ---- Actual backend call ----
+    // Actual backend call
     try {
       const data = await processClaim(input);
-
       setResponse(data.result);
 
-      // Now mark final step completed
+      // Mark final step completed
       setSteps((p) => ({ ...p, summary: "completed" }));
     } catch (e) {
       alert("Backend error");
     }
 
     setLoading(false);
-  };
-
-  const getStepClass = (state) => {
-    if (state === "active") return "bg-blue-100 border-blue-600";
-    if (state === "completed") return "bg-green-100 border-green-600";
-    return "bg-gray-200 border-gray-400"; // inactive
   };
 
   return (
@@ -87,7 +78,7 @@ export default function App() {
           Claim Journey
         </h3>
 
-        {stepOrder.map((step) => (
+        {stepOrder.map((step, idx) => (
           <div
             key={step}
             style={{
@@ -96,14 +87,21 @@ export default function App() {
               borderRadius: 8,
               border: "2px solid",
               fontWeight: "500",
-              ...((steps[step] === "active" && { color: "#1e40af" }) ||
-                (steps[step] === "completed" && { color: "#166534" })),
+              color:
+                steps[step] === "active"
+                  ? "#1e40af"
+                  : steps[step] === "completed"
+                  ? "#166534"
+                  : "#374151",
               background:
                 steps[step] === "active"
                   ? "#dbeafe"
                   : steps[step] === "completed"
                   ? "#dcfce7"
                   : "#e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
             {step === "extract" && "1. Extract Fields"}
@@ -111,7 +109,7 @@ export default function App() {
             {step === "fraud" && "3. Fraud Check"}
             {step === "summary" && "4. Summarize Claim"}
 
-            <span style={{ float: "right" }}>
+            <span>
               {steps[step] === "active" && "⏳"}
               {steps[step] === "completed" && "✔️"}
             </span>
@@ -134,7 +132,6 @@ export default function App() {
           Multi-Agent Claim Processor
         </h2>
 
-        {/* Input */}
         <textarea
           rows={6}
           value={input}
@@ -166,14 +163,12 @@ export default function App() {
           {loading ? "Processing..." : "Initiate Claim"}
         </button>
 
-        {/* Response */}
         {response && (
           <div style={{ marginTop: 30 }}>
             <h3 style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
               Extracted Details
             </h3>
 
-            {/* Mapping the extract fields */}
             <div
               style={{
                 display: "grid",
@@ -182,29 +177,26 @@ export default function App() {
                 marginBottom: 20,
               }}
             >
-              {Object.entries(response.extract_claim_fields).map(
-                ([key, value]) => (
-                  <div key={key}>
-                    <label style={{ fontWeight: "600" }}>
-                      {key.replace(/_/g, " ").toUpperCase()}
-                    </label>
-                    <input
-                      value={value}
-                      readOnly
-                      style={{
-                        width: "100%",
-                        border: "1px solid #ccc",
-                        borderRadius: 8,
-                        padding: 8,
-                        marginTop: 4,
-                      }}
-                    />
-                  </div>
-                )
-              )}
+              {Object.entries(response.extract_claim_fields).map(([key, value]) => (
+                <div key={key}>
+                  <label style={{ fontWeight: "600" }}>
+                    {key.replace(/_/g, " ").toUpperCase()}
+                  </label>
+                  <input
+                    value={value}
+                    readOnly
+                    style={{
+                      width: "100%",
+                      border: "1px solid #ccc",
+                      borderRadius: 8,
+                      padding: 8,
+                      marginTop: 4,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
 
-            {/* Validation */}
             <div style={{ marginBottom: 20 }}>
               <h4 style={{ marginBottom: 8 }}>Validation Result</h4>
               <input
@@ -223,7 +215,6 @@ export default function App() {
               />
             </div>
 
-            {/* Fraud */}
             <div style={{ marginBottom: 20 }}>
               <h4 style={{ marginBottom: 8 }}>Fraud Check</h4>
               <textarea
@@ -239,7 +230,6 @@ export default function App() {
               />
             </div>
 
-            {/* Summary */}
             <div style={{ marginBottom: 20 }}>
               <h4 style={{ marginBottom: 8 }}>Claim Summary</h4>
               <textarea

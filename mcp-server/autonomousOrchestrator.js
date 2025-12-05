@@ -24,7 +24,7 @@ function isToolRegistered(toolName) {
   // MCP exposes registered tools via `mcp._tools` (or `mcp.tools` in some versions)
   return Object.keys(mcp._registeredTools).includes(toolName);
 }
-process.env.GEMINI_API_KEY = "AIzaSyAfEXzT43TxhWGp0C6UJ3A4N3WNDeRsyn4";
+process.env.GEMINI_API_KEY = "";
 export default async function autonomousAgent(userText) {
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

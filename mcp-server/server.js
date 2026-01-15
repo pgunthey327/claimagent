@@ -7,14 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post("/api/process-claim", async (req, res) => {
-  const { text } = req.body;
+app.post("/api/process-claim", (req, res) => {
+  const { text, claimFormData } = req.body;
 
   try {
- 
-
-    const result = await autonomousAgent(text);
-    res.json({ success: true, result });
+ console.log(text);
+    process.env.baseUrl = "http://localhost:11434";
+    process.env.modelName = "qwen3:0.6b";
+    autonomousAgent(text, claimFormData);
+    res.status(202).send();
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

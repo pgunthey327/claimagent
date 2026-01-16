@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import fs from "fs";
 import autonomousAgent from "./autonomousOrchestrator.js";
 dotenv.config();
 const app = express();
@@ -16,6 +17,15 @@ app.post("/api/process-claim", (req, res) => {
     process.env.modelName = "qwen3:0.6b";
     autonomousAgent(text, claimFormData);
     res.status(202).send();
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/claim-results", (req, res) => {
+  try {
+    const data = fs.readFileSync("claim_results.json", "utf-8");
+    res.status(200).json(JSON.parse(data));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

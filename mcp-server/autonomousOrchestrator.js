@@ -112,10 +112,16 @@ let toolDescriptions = {
     if (!Array.isArray(allResults[userId])) {
       allResults[userId] = [allResults[userId]];
     }
+    // Generate claim ID based on array length
+    const claimNumber = allResults[userId].length + 1;
+    const claimId = `CLM${String(claimNumber).padStart(3, '0')}`;
+    newResult.claimId = claimId;
     // Append new result to array
     allResults[userId].push(newResult);
   } else {
     // Create new entry with array containing the result
+    const claimId = "CLM001";
+    newResult.claimId = claimId;
     allResults[userId] = [newResult];
   }
   
